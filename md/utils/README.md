@@ -1,4 +1,126 @@
-# Vue2 工具函数
+# 初学者也能看懂的 Vue2 源码中那些实用的基础工具函数
+
+## 前言
+
+大家好，我是[若川](https://lxchuan12.gitee.io)。欢迎关注我的[公众号若川视野](https://p1-jj.byteimg.com/tos-cn-i-t2oaga2asx/gold-user-assets/2019/12/13/16efe57ddc7c9eb3~tplv-t2oaga2asx-image.image "https://p1-jj.byteimg.com/tos-cn-i-t2oaga2asx/gold-user-assets/2019/12/13/16efe57ddc7c9eb3~tplv-t2oaga2asx-image.image")，最近组织了[**源码共读活动**《1个月，200+人，一起读了4周源码》](https://mp.weixin.qq.com/s?__biz=MzA5MjQwMzQyNw==&mid=2650756550&idx=1&sn=9acc5e30325963e455f53ec2f64c1fdd&chksm=8866564abf11df5c41307dba3eb84e8e14de900e1b3500aaebe802aff05b0ba2c24e4690516b&token=917686367&lang=zh_CN#rd)，感兴趣的可以加我微信 [ruochuan12](https://mp.weixin.qq.com/s?__biz=MzA5MjQwMzQyNw==&mid=2650756550&idx=1&sn=9acc5e30325963e455f53ec2f64c1fdd&chksm=8866564abf11df5c41307dba3eb84e8e14de900e1b3500aaebe802aff05b0ba2c24e4690516b&token=917686367&lang=zh_CN#rd) 加微信群参与，长期交流学习。
+
+之前写的[《学习源码整体架构系列》](https://juejin.cn/column/6960551178908205093) 包含`jQuery`、`underscore`、`lodash`、`vuex`、`sentry`、`axios`、`redux`、`koa`、`vue-devtools`、`vuex4`十余篇源码文章。
+
+>写相对很难的源码，耗费了自己的时间和精力，也没收获多少阅读点赞，其实是一件挺受打击的事情。从阅读量和读者受益方面来看，不能促进作者持续输出文章。
+>所以转变思路，写一些相对通俗易懂的文章。**其实源码也不是想象的那么难，至少有很多看得懂**。歌德曾说：读一本好书，就是在和高尚的人谈话。
+>同理可得：读源码，也算是和作者的一种学习交流的方式。
+
+本文通过学习`Vue2`源码中的工具函数模块的源码，学习源码为自己所用。
+
+阅读本文，你将学到：
+
+```js
+1. 如何学习 JavaScript 基础知识，会推荐很多学习资料
+2. 如何学习调试 vue2 源码
+3. 如何学习源码中优秀代码和思想，投入到自己的项目中
+4. Vue 3 源码 shared 模块中的几十个实用工具函数
+5. 我的一些经验分享
+```
+
+## 2. 环境准备
+
+### 2.1 读开源项目 贡献指南
+
+打开 [vue](https://github.com/vuejs/vue-next)，
+开源项目一般都能在 `README.md` 或者 [.github/contributing.md](https://github.com/vuejs/vue-next/blob/master/.github/contributing.md) 找到贡献指南。
+
+而贡献指南写了很多关于参与项目开发的信息。比如怎么跑起来，项目目录结构是怎样的。怎么投入开发，需要哪些知识储备等。
+
+我们可以在 [项目目录结构](https://github.com/vuejs/vue-next/blob/master/.github/contributing.md#project-structure) 描述中，找到`shared`模块。
+
+`shared`: Internal utilities shared across multiple packages (especially environment-agnostic utils used by both runtime and compiler packages).
+
+`README.md` 和 `contributing.md` 一般都是英文的。可能会难倒一部分人。其实看不懂，完全可以可以借助划词翻译，整页翻译和百度翻译等翻译工具。再把英文加入后续学习计划。
+
+本文就是讲`shared`模块，对应的文件路径是：[`vue-next/packages/shared/src/index.ts`](https://github.com/vuejs/vue-next/blob/master/packages/shared/src/index.ts)
+
+也可以用`github1s`访问，速度更快。[github1s packages/shared/src/index.ts](https://github1s.com/vuejs/vue-next/blob/master/packages/shared/src/index.ts)
+
+### 2.2 按照项目指南 打包构建代码
+
+为了降低文章难度，我按照贡献指南中方法打包把`ts`转成了`js`。如果你需要打包，也可以参考下文打包构建。
+
+你需要确保 [Node.js](http://nodejs.org/) 版本是 `10+`, 而且 `yarn` 的版本是 `1.x` [Yarn 1.x](https://yarnpkg.com/en/docs/install)。
+
+你安装的 `Node.js` 版本很可能是低于 `10`。最简单的办法就是去官网重新安装。也可以使用 `nvm`等管理`Node.js`版本。
+
+```bash
+node -v
+# v14.16.0
+# 全局安装 yarn
+
+# 推荐克隆我的项目
+git clone https://github.com/lxchuan12/vue-analysis.git
+cd vue-analysis/vue
+
+# 或者克隆官方项目
+git clone https://github.com/vuejs/vue.git
+cd vue
+
+npm install --global yarn
+yarn # install the dependencies of the project
+npm build
+```
+
+可以得到 `vue-next/packages/shared/dist/shared.esm-bundler.js`，文件也就是纯`js`文件。接下来就是解释其中的一些方法。
+
+>当然，前面可能比较啰嗦。我可以直接讲 `3. 工具函数`。但通过我上文的介绍，即使是初学者，都能看懂一些开源项目源码，也许就会有一定的成就感。
+>另外，面试问到被类似的问题或者笔试题时，你说看`Vue3`源码学到的，面试官绝对对你刮目相看。
+
+### 2.3 如何生成 sourcemap 调试 vue-next 源码
+
+熟悉我的读者知道，我是经常强调生成`sourcemap`调试看源码，所以顺便提一下如何配置生成`sourcemap`，如何调试。这部分可以简单略过，动手操作时再仔细看。
+
+其实[贡献指南](https://github.com/vuejs/vue-next/blob/master/.github/contributing.md)里描述了。
+>Build with Source Maps
+>Use the `--sourcemap` or `-s` flag to build with source maps. Note this will make the build much slower.
+
+所以在 `vue-next/package.json` 追加 `"dev:sourcemap": "node scripts/dev.js --sourcemap"`，`yarn dev:sourcemap`执行，即可生成`sourcemap`，或者直接 `build`。
+
+```json
+// package.json
+{
+    "version": "3.2.1",
+    "scripts": {
+        "dev:sourcemap": "node scripts/dev.js --sourcemap"
+    }
+}
+```
+
+会在控制台输出类似`vue-next/packages/vue/src/index.ts → packages/vue/dist/vue.global.js`的信息。
+
+其中`packages/vue/dist/vue.global.js.map` 就是`sourcemap`文件了。
+
+我们在 Vue3官网找个例子，在 `vue-next/examples/index.html`。其内容引入`packages/vue/dist/vue.global.js`。
+
+```js
+// vue-next/examples/index.html
+<script src="../../packages/vue/dist/vue.global.js"></script>
+<script>
+    const Counter = {
+        data() {
+            return {
+                counter: 0
+            }
+        }
+    }
+
+    Vue.createApp(Counter).mount('#counter')
+</script>
+```
+
+然后我们新建一个终端窗口，`yarn serve`，在浏览器中打开`http://localhost:5000/examples/`，如下图所示，按`F11`等进入函数，就可以愉快的调试源码了。
+
+![vue-next-debugger](./images/vue-next-debugger.png)
+
+## 3. 工具函数
+
+### 3.1 emptyObject
 
 ```js
 /*!
@@ -10,6 +132,8 @@
 var emptyObject = Object.freeze({});
 ```
 
+### 3.2 isUndef 是否是未定义
+
 ```js
 // These helpers produce better VM code in JS engines due to their
 // explicitness and function inlining.
@@ -18,11 +142,15 @@ function isUndef (v) {
 }
 ```
 
+### 3.3 isDef 是否是已经定义
+
 ```js
 function isDef (v) {
   return v !== undefined && v !== null
 }
 ```
+
+### 3.4 isTrue 是否是 true
 
 ```js
 function isTrue (v) {
@@ -30,11 +158,15 @@ function isTrue (v) {
 }
 ```
 
+### 3.5 isFalse 是否是 false
+
 ```js
 function isFalse (v) {
   return v === false
 }
 ```
+
+### 3.6 isPrimitive 判断值是否是原始值
 
 ```js
 /**
@@ -51,6 +183,8 @@ function isPrimitive (value) {
 }
 ```
 
+## 3.7 isObject 判断是对象
+
 ```js
 /**
  * Quick object check - this is primarily used to tell
@@ -61,6 +195,8 @@ function isObject (obj) {
   return obj !== null && typeof obj === 'object'
 }
 ```
+
+## 3.8 toRawType
 
 ```js
 /**
@@ -73,6 +209,8 @@ function toRawType (value) {
 }
 ```
 
+### 3.9 isPlainObject 是否是纯对象
+
 ```js
 /**
  * Strict object type check. Only returns true
@@ -81,11 +219,17 @@ function toRawType (value) {
 function isPlainObject (obj) {
   return _toString.call(obj) === '[object Object]'
 }
+```
 
+### 3.10 isRegExp 是否是正则表达式
+
+```js
 function isRegExp (v) {
   return _toString.call(v) === '[object RegExp]'
 }
 ```
+
+### 3.11 isValidArrayIndex 是否是可用的数组索引值
 
 ```js
 /**
@@ -97,6 +241,8 @@ function isValidArrayIndex (val) {
 }
 ```
 
+### 3.12 isPromise 判断是否是 promise
+
 ```js
 function isPromise (val) {
   return (
@@ -106,6 +252,10 @@ function isPromise (val) {
   )
 }
 ```
+
+这里用 `isDef` 判断其实相对 `isObject` 来判断 来说有点不严谨。
+
+### 3.13 toString 转字符串
 
 ```js
 /**
@@ -120,6 +270,8 @@ function toString (val) {
 }
 ```
 
+### 3.14 toNumber 转数字
+
 ```js
 /**
  * Convert an input value to a number for persistence.
@@ -130,6 +282,8 @@ function toNumber (val) {
   return isNaN(n) ? val : n
 }
 ```
+
+### 3.15 makeMap 
 
 ```js
 /**
@@ -151,18 +305,25 @@ function makeMap (
 }
 ```
 
+### isBuiltInTag 是否是内置的 tag
+
 ```js
 /**
  * Check if a tag is a built-in tag.
  */
 var isBuiltInTag = makeMap('slot,component', true);
 ```
+
+### isReservedAttribute 是否是保留的属性
+
 ```js
 /**
  * Check if an attribute is a reserved attribute.
  */
 var isReservedAttribute = makeMap('key,ref,slot,slot-scope,is');
 ```
+
+### remove 移除数组中的中一项
 
 ```js
 /**
@@ -178,6 +339,8 @@ function remove (arr, item) {
 }
 ```
 
+### hasOwn 检测是否是自己的属性
+
 ```js
 /**
  * Check whether an object has the property.
@@ -187,6 +350,8 @@ function hasOwn (obj, key) {
   return hasOwnProperty.call(obj, key)
 }
 ```
+
+### cached 缓存
 
 ```js
 /**
@@ -214,9 +379,7 @@ var camelize = cached(function (str) {
 var capitalize = cached(function (str) {
   return str.charAt(0).toUpperCase() + str.slice(1)
 });
-```
 
-```js
 /**
  * Hyphenate a camelCase string.
  */
@@ -225,6 +388,8 @@ var hyphenate = cached(function (str) {
   return str.replace(hyphenateRE, '-$1').toLowerCase()
 });
 ```
+
+### polyfillBind bind 的垫片
 
 ```js
 /**
@@ -259,6 +424,8 @@ var bind = Function.prototype.bind
   : polyfillBind;
 ```
 
+### toArray 把类数组转成真正的数组
+
 ```js
 /**
  * Convert an Array-like object to a real Array.
@@ -274,6 +441,8 @@ function toArray (list, start) {
 }
 ```
 
+### extend 继承 合并
+
 ```js
 /**
  * Mix properties into target object.
@@ -285,6 +454,8 @@ function extend (to, _from) {
   return to
 }
 ```
+
+### toObject 转对象
 
 ```js
 /**
@@ -301,6 +472,8 @@ function toObject (arr) {
 }
 ```
 
+### noop 空函数
+
 ```js
 /* eslint-disable no-unused-vars */
 /**
@@ -311,6 +484,8 @@ function toObject (arr) {
 function noop (a, b, c) {}
 ```
 
+### no 一直返回 false
+
 ```js
 /**
  * Always return false.
@@ -319,12 +494,16 @@ var no = function (a, b, c) { return false; };
 /* eslint-enable no-unused-vars */
 ```
 
-```
+### identity 返回参数本身
+
+```js
 /**
  * Return the same value.
  */
 var identity = function (_) { return _; };
 ```
+
+### genStaticKeys 获取静态属性
 
 ```js
 /**
@@ -336,6 +515,8 @@ function genStaticKeys (modules) {
   }, []).join(',')
 }
 ```
+
+### looseEqual 宽松相等
 
 ```js
 /**
@@ -378,6 +559,8 @@ function looseEqual (a, b) {
 }
 ```
 
+### looseIndexOf 宽松的 indexOf
+
 ```js
 /**
  * Return the first index at which a loosely equal value can be
@@ -391,6 +574,8 @@ function looseIndexOf (arr, val) {
   return -1
 }
 ```
+
+### once 确保函数只执行一次
 
 ```js
 /**
@@ -406,3 +591,5 @@ function once (fn) {
   }
 }
 ```
+
+## 总结
