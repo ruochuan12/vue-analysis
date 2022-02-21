@@ -31,7 +31,7 @@ describe('Directive v-on', () => {
     expect(event.type).toBe('click')
   })
 
-  it('should bind event to a inline statement', () => {
+  it('should bind event to an inline statement', () => {
     vm = new Vue({
       el,
       template: '<div v-on:click="foo(1,2,3,$event)"></div>',
@@ -218,7 +218,7 @@ describe('Directive v-on', () => {
   })
 
   // ctrl, shift, alt, meta
-  it('should support system modifers', () => {
+  it('should support system modifiers', () => {
     vm = new Vue({
       el,
       template: `
